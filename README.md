@@ -2,80 +2,118 @@
 
 A Chrome extension that automatically fills Microsoft Authenticator **verification codes** when you hit a Microsoft login MFA prompt.
 
+Works on **macOS**, **Windows**, and **Linux**.
+
 When Microsoft asks you to approve a sign-in (or enter a code), the extension:
 
 1. Detects the MFA screen
 2. Clicks **“I can't use my Microsoft Authenticator app right now”** if you're on the push / number-match screen
-3. Runs your local `~/microsoft-auth.sh` script to generate a TOTP code
+3. Generates a TOTP code locally (via a native messaging host)
 4. Pastes the code and continues sign-in
 
-**Requirements:** macOS, Google Chrome, [Homebrew](https://brew.sh), and Python 3 (usually already installed on Mac).
+---
+
+## Platform support
+
+| Platform | Supported? | Installer |
+| --- | --- | --- |
+| **macOS** | Yes | `./install.sh` or `python3 install.py` |
+| **Windows** | Yes | `.\install.ps1` or `python install.py` |
+| **Linux** | Yes | `./install.sh` or `python3 install.py` |
+
+**Requirements (all platforms):** Google Chrome (or Chromium / Edge / Brave) and **Python 3**.
 
 ---
 
-## Overview (what you'll set up)
+## How secrets work (all platforms)
 
-| Piece | What it is |
-| --- | --- |
-| `~/microsoft-auth.sh` | A tiny Terminal script that generates your Microsoft 2FA code |
-| Chrome extension | Watches Microsoft login pages and pastes the code |
-| Native host (`install.sh`) | The bridge that lets Chrome run your script safely |
+The extension never stores your secret. The native host reads it from:
 
-Do the steps **in order**. Skip nothing the first time.
+```text
+~/.auto-auth/secret
+```
+
+On Windows that is usually:
+
+```text
+C:\Users\<you>\.auto-auth\secret
+```
+
+The file should contain only your Microsoft authenticator base32 secret (one line).
+
+**Legacy (macOS):** if you already have `~/microsoft-auth.sh` with an `oathtool --totp -b "SECRET"` line, the host can still use that. New installs should use `~/.auto-auth/secret`.
 
 ---
 
-## Part 1 — Generate Microsoft 2FA codes on your Mac (no phone)
+## Shared Step A — Get your Microsoft authenticator secret
 
-### Step 1: Install the code generator
+Microsoft prefers push notifications. You need the **manual secret key** instead.
 
-Open **Terminal** (Spotlight → type `Terminal` → Enter) and run:
+1. Open your Microsoft security / authenticator setup page in a browser (work/school: **Security info** → **Add a sign-in method**).
+2. Choose to **add an Authenticator app**.
+3. Click **“I want to use a different authenticator app”**.
+4. Click **“Can't scan image”** or **“Enter code manually”**.
+5. Copy the long secret string (usually 16–32 characters), e.g. `JBSWY3DPEHPK3PXP`.
+
+Keep this private — anyone with it can generate your login codes.
+
+---
+
+## Shared Step B — Load the Chrome extension
+
+1. Clone or download this repo
+2. Open Chrome → `chrome://extensions`
+3. Turn on **Developer mode** (top-right)
+4. Click **Load unpacked**
+5. Select the **`extension`** folder (the one with `manifest.json`, not the repo root)
+6. Copy the **Extension ID** under the card (32 characters)
+
+---
+
+## macOS setup
+
+### 1. Save your secret
+
+```bash
+cd /path/to/auto-auth
+python3 install.py --set-secret
+```
+
+Paste the secret when prompted (or pass it: `python3 install.py --set-secret YOUR_SECRET`).
+
+### 2. Connect Chrome to the native host
+
+```bash
+chmod +x install.sh
+./install.sh YOUR_EXTENSION_ID
+```
+
+### 3. Verify
+
+1. Fully quit Chrome (`Cmd + Q`) and reopen it  
+2. Click the extension icon → **Test native host**  
+3. You should see `OK — got code 123456`
+
+### Optional: generate a code in Terminal
+
+```bash
+python3 scripts/microsoft-auth.py
+```
+
+### Optional legacy script (`oathtool` + clipboard)
+
+Only needed if you prefer the old workflow:
 
 ```bash
 brew install oath-toolkit
-```
-
-If you don't have Homebrew yet, install it from [https://brew.sh](https://brew.sh), then run the command above again.
-
----
-
-### Step 2: Get a standard authenticator secret from Microsoft
-
-Microsoft prefers push notifications in their app. You need the **manual secret key** instead.
-
-1. Open your Microsoft security / authenticator setup page in a browser (for work/school accounts this is usually under **Security info** / **Add a sign-in method**).
-2. Choose to **add an Authenticator app**.
-3. At the bottom of the prompt, click **“I want to use a different authenticator app”**.
-4. On the next screen, click **“Can't scan image”** or **“Enter code manually”**.
-5. Copy the long secret string (usually 16–32 characters, letters and numbers), e.g. `JBSWY3DPEHPK3PXP`.
-
-Keep this secret private — anyone with it can generate your login codes.
-
----
-
-### Step 3: Create `~/microsoft-auth.sh`
-
-In Terminal:
-
-```bash
 nano ~/microsoft-auth.sh
 ```
 
-Paste this, replacing `YOUR_SECRET_KEY_HERE` with the secret you copied:
-
 ```bash
 #!/bin/bash
-# Generates the 6-digit Microsoft 2FA token and copies it to your Mac clipboard
 oathtool --totp -b "YOUR_SECRET_KEY_HERE" | pbcopy
 echo "Microsoft code copied to clipboard!"
 ```
-
-Save and exit nano:
-
-1. `Ctrl + O`, then `Enter` (save)
-2. `Ctrl + X` (exit)
-
-Make it executable:
 
 ```bash
 chmod +x ~/microsoft-auth.sh
@@ -83,137 +121,172 @@ chmod +x ~/microsoft-auth.sh
 
 ---
 
-### Step 4: Test the script by itself
+## Windows setup
+
+### 1. Install Python 3
+
+Install from [python.org](https://www.python.org/downloads/) and check **“Add python.exe to PATH”**.
+
+Confirm in **PowerShell** or **Command Prompt**:
+
+```powershell
+python --version
+```
+
+### 2. Save your secret
+
+In PowerShell, from the repo folder:
+
+```powershell
+cd C:\path\to\auto-auth
+python install.py --set-secret
+```
+
+Paste the secret when prompted.
+
+### 3. Connect Chrome to the native host
+
+```powershell
+.\install.ps1 YOUR_EXTENSION_ID
+```
+
+If PowerShell blocks scripts:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+Or call Python directly:
+
+```powershell
+python install.py YOUR_EXTENSION_ID
+```
+
+### 4. Verify
+
+1. Fully quit Chrome (tray icon → Exit) and reopen it  
+2. Click the extension icon → **Test native host**  
+3. You should see `OK — got code 123456`
+
+### Optional: generate a code in a terminal
+
+```powershell
+python scripts\microsoft-auth.py
+```
+
+---
+
+## Linux setup
+
+### 1. Install Python 3
 
 ```bash
-~/microsoft-auth.sh
+# Debian/Ubuntu
+sudo apt update && sudo apt install -y python3
+
+# Fedora
+sudo dnf install -y python3
 ```
 
-You should see:
-
-```text
-Microsoft code copied to clipboard!
-```
-
-Paste somewhere (`Cmd + V`) — you should get a 6-digit code. If that works, continue.
-
----
-
-## Part 2 — Install this Chrome extension
-
-### Step 5: Get the project on your Mac
-
-If you cloned from GitHub:
+### 2. Save your secret
 
 ```bash
-cd "/path/to/auto-auth"
+cd /path/to/auto-auth
+python3 install.py --set-secret
 ```
 
-(Use the real folder path where you cloned the repo.)
-
----
-
-### Step 6: Load the extension in Chrome
-
-1. Open Chrome and go to: `chrome://extensions`
-2. Turn on **Developer mode** (toggle in the top-right)
-3. Click **Load unpacked**
-4. Select the **`extension`** folder inside this repo  
-   (the folder that contains `manifest.json` — not the repo root)
-5. Confirm **Auto Microsoft Auth** appears in your extensions list
-6. **Copy the Extension ID** shown under the extension card  
-   (a long string like `abcdefghijklmnopqrstuvwxyzabcdef`)
-
-Leave that ID on your clipboard / sticky note — you need it next.
-
----
-
-### Step 7: Connect Chrome to your auth script
-
-Still in Terminal, from the repo root:
+### 3. Connect Chrome to the native host
 
 ```bash
 chmod +x install.sh
-./install.sh YOUR_EXTENSION_ID_HERE
+./install.sh YOUR_EXTENSION_ID
 ```
 
-Example:
+This writes native-messaging manifests under `~/.config/google-chrome/`, `~/.config/chromium/`, `~/.config/microsoft-edge/`, and Brave paths when present.
+
+### 4. Verify
+
+1. Fully quit the browser and reopen it  
+2. Click the extension icon → **Test native host**  
+3. You should see `OK — got code 123456`
+
+### Optional: generate a code in a terminal
 
 ```bash
-./install.sh abcdefghijklmnopqrstuvwxyzabcdef
+python3 scripts/microsoft-auth.py
 ```
 
-This registers a small native messaging host so Chrome can run `~/microsoft-auth.sh`.
+Clipboard copy on Linux uses `wl-copy`, `xclip`, or `xsel` when available; otherwise the code is printed.
 
 ---
 
-### Step 8: Verify the bridge works
-
-1. In Chrome, click the **Auto Microsoft Auth** extension icon
-2. Click **Test native host**
-3. You should see something like: `OK — got code 123456`
-
-If you see an error, jump to [Troubleshooting](#troubleshooting).
-
----
-
-## Part 3 — Use it
+## Using it
 
 Sign in to any site that uses Microsoft login. When MFA appears:
 
 - On the **Approve sign-in / number match** screen, the extension clicks **“I can't use my Microsoft Authenticator app right now”**
-- On the **Enter code** screen, it fills the code and continues
+- Then it selects code entry if needed, fills the code, and continues
 
-You usually don't need to open Terminal anymore.
+You usually do not need to open a terminal after setup.
 
 ---
 
 ## Troubleshooting
 
-### `Test native host` fails / “Specified native messaging host not found”
+### “Specified native messaging host not found”
 
-- Re-run `./install.sh YOUR_EXTENSION_ID` with the **current** extension ID from `chrome://extensions`
-- If you removed and re-loaded the extension, the ID may have changed — run `install.sh` again
-- Fully quit Chrome (`Cmd + Q`) and reopen it after installing
+- Re-run the installer with the **current** extension ID from `chrome://extensions` (IDs change if you remove/reload unpacked)
+- Fully quit and reopen the browser after installing
+- **Windows:** confirm `python install.py YOUR_ID` completed without errors (it writes a registry key under `HKCU\Software\Google\Chrome\NativeMessagingHosts\`)
 
-### “oathtool: command not found” or empty / invalid code
+### “No secret found” / invalid code
 
-- Confirm Homebrew installed the tool: `brew install oath-toolkit`
-- Confirm the script works alone: `~/microsoft-auth.sh`
-- Confirm the secret in `~/microsoft-auth.sh` is correct (no spaces, quotes around it)
+```bash
+python3 install.py --set-secret
+```
 
-### Extension doesn't click / fill on the login page
+Confirm the file exists and contains only the base32 secret:
 
-1. Reload the extension on `chrome://extensions` (circular refresh button)
+- macOS / Linux: `~/.auto-auth/secret`
+- Windows: `%USERPROFILE%\.auto-auth\secret`
+
+### Extension doesn't click / fill
+
+1. Reload the extension on `chrome://extensions`
 2. Refresh the Microsoft login tab
-3. Confirm you're on a `login.microsoftonline.com` (or similar Microsoft login) page
-4. Open DevTools → Console and look for `[Auto Microsoft Auth]` messages
+3. Confirm the URL is a Microsoft login host (`login.microsoftonline.com`, etc.)
+4. Open DevTools → Console for `[Auto Microsoft Auth]` messages
 
 ### After updating this repo
 
-```bash
-./install.sh YOUR_EXTENSION_ID
-```
-
-Then click the refresh button on the extension card in `chrome://extensions`.
+Re-run the installer with your extension ID, then click the refresh button on the extension card.
 
 ---
 
 ## Security notes
 
-- Your TOTP secret lives only in `~/microsoft-auth.sh` — **do not commit that file to GitHub**
-- This extension only runs on Microsoft login hosts and only talks to the local native host you install
-- Treat `~/microsoft-auth.sh` like a password backup
+- Your TOTP secret lives in `~/.auto-auth/secret` (or a legacy home-directory script) — **never commit it to GitHub**
+- The extension only runs on Microsoft login hosts and only talks to the local native host you install
+- Treat the secret file like a password backup (`chmod 600` is applied automatically on macOS/Linux)
 
 ---
 
 ## Uninstall
 
 1. Remove the extension from `chrome://extensions`
-2. Optional cleanup:
+
+**macOS / Linux:**
 
 ```bash
-rm -rf ~/.local/share/auto-auth
+rm -rf ~/.local/share/auto-auth ~/.auto-auth
+rm -f ~/.config/google-chrome/NativeMessagingHosts/com.autoauth.microsoft.json
 rm -f ~/Library/Application\ Support/Google/Chrome/NativeMessagingHosts/com.autoauth.microsoft.json
-rm -f ~/microsoft-auth.sh
+```
+
+**Windows (PowerShell):**
+
+```powershell
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\auto-auth" -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force "$env:USERPROFILE\.auto-auth" -ErrorAction SilentlyContinue
+Remove-Item -Path "HKCU:\Software\Google\Chrome\NativeMessagingHosts\com.autoauth.microsoft" -ErrorAction SilentlyContinue
 ```

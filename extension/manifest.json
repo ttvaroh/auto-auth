@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Auto Microsoft Auth",
-  "version": "1.0.0",
-  "description": "Detects Microsoft MFA prompts, runs microsoft-auth.sh, and pastes the code.",
-  "permissions": ["nativeMessaging", "clipboardRead"],
+  "version": "1.1.0",
+  "description": "Detects Microsoft MFA prompts, generates a local TOTP code, and signs in (macOS, Windows, Linux).",
+  "permissions": ["nativeMessaging"],
   "host_permissions": [
     "https://login.microsoftonline.com/*",
     "https://login.microsoft.com/*",
