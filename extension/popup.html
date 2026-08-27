@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif;
+        margin: 12px 14px;
+        width: 240px;
+        color: #1a1a1a;
+      }
+      h1 {
+        font-size: 14px;
+        margin: 0 0 6px;
+      }
+      p {
+        margin: 0;
+        color: #555;
+      }
+      button {
+        margin-top: 10px;
+        width: 100%;
+        padding: 6px 8px;
+        cursor: pointer;
+      }
+      #status {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #333;
+        word-break: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Auto Microsoft Auth</h1>
+    <p>Watches Microsoft login pages and pastes your TOTP from <code>~/microsoft-auth.sh</code>.</p>
+    <button id="test">Test native host</button>
+    <div id="status"></div>
+    <script src="popup.js"></script>
+  </body>
+</html>

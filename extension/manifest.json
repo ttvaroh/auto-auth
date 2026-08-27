@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Auto Microsoft Auth",
+  "version": "1.0.0",
+  "description": "Detects Microsoft MFA prompts, runs microsoft-auth.sh, and pastes the code.",
+  "permissions": ["nativeMessaging", "clipboardRead"],
+  "host_permissions": [
+    "https://login.microsoftonline.com/*",
+    "https://login.microsoft.com/*",
+    "https://login.live.com/*",
+    "https://*.microsoftonline.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://login.microsoftonline.com/*",
+        "https://login.microsoft.com/*",
+        "https://login.live.com/*",
+        "https://*.microsoftonline.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "action": {
+    "default_title": "Auto Microsoft Auth",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
