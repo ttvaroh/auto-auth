@@ -49,7 +49,7 @@ The file should contain only your Microsoft authenticator base32 secret (one lin
 
 Microsoft prefers push notifications. You need the **manual secret key** instead.
 
-1. Open your Microsoft security / authenticator setup page in a browser (work/school: **Security info** → **Add a sign-in method**).
+1. Open [account.microsoft.com/security](account.microsoft.com/security) and navigate **My Account** → **Security Info** → **Add a sign-in method**.
 2. Choose to **add an Authenticator app**.
 3. Click **“I want to use a different authenticator app”**.
 4. Click **“Can't scan image”** or **“Enter code manually”**.
@@ -82,6 +82,7 @@ python3 install.py --set-secret
 Paste the secret when prompted (or pass it: `python3 install.py --set-secret YOUR_SECRET`).
 
 ### 2. Connect Chrome to the native host
+get the extension id from the chrome extension in `chrome://extensions` and run the following:
 
 ```bash
 chmod +x install.sh
